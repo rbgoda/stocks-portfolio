@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stocks Portfolio</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js "></script>
+</head>
+<body>
+
+  <header>
+    <nav class="navbar">
+      <div class="logo">MyStocks</div>
+      <ul class="nav-links">
+        <li><a href="#home">Home</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#portfolio">Portfolio</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="#stockLookup">Stock Lookup</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="home" class="hero">
+    <h1>Welcome to My Stocks Portfolio</h1>
+    <p>Tracking my journey in stock markets and financial analysis</p>
+    <a href="#about" class="btn">Learn More</a>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="about">
+    <h2>About Me</h2>
+    <p>Hello! I'm [Your Name], a passionate investor and finance enthusiast. I enjoy analyzing market trends and building strategies for long-term growth.</p>
+  </section>
+
+  <!-- Portfolio Section -->
+  <section id="portfolio" class="portfolio">
+    <h2>My Projects</h2>
+    <div class="project-list">
+      <div class="project-card">
+        <h3>Stock Screener Tool</h3>
+        <p>A web-based tool to filter stocks based on fundamentals.</p>
+      </div>
+      <div class="project-card">
+        <h3>Market Dashboard</h3>
+        <p>Real-time data dashboard for tracking top-performing stocks.</p>
+      </div>
+      <div class="project-card">
+        <h3>Algorithmic Trading Bot</h3>
+        <p>Built a Python bot that executes trades based on technical indicators.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact" class="contact">
+    <h2>Contact Me</h2>
+    <form id="contactForm">
+      <input type="text" placeholder="Your Name" required />
+      <input type="email" placeholder="Your Email" required />
+      <textarea placeholder="Your Message" required></textarea>
+      <button type="submit">Send Message</button>
+    </form>
+  </section>
+
+  <!-- Stock Lookup Section -->
+  <section id="stockLookup" class="stock-lookup">
+    <h2>Live Stock Price Lookup</h2>
+    <div class="lookup-form">
+      <input type="text" id="stockSymbol" placeholder="Enter Stock Symbol (e.g., AAPL)" />
+      <button onclick="getStockData()">Get Data</button>
+    </div>
+    <div id="stockResult" class="result-box"></div>
+    <canvas id="stockChart" width="80%" height="400"></canvas>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 Your Name. All rights reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
