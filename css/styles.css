@@ -1,0 +1,53 @@
+/* 
+ * Stock Portfolio Dashboard CSS
+ * A comprehensive stylesheet for a modern financial dashboard 
+ */
+
+/* ===== BASE STYLES ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Main color palette */
+  --primary-color: #1a73e8;
+  --secondary-color: #f8f9fa;
+  --dark-color: #202124;
+  --light-color: #ffffff;
+  --border-color: #dadce0;
+  
+  /* Financial indicator colors */
+  --positive-color: #34a853;
+  --negative-color: #ea4335;
+  --neutral-color: #5f6368;
+  
+  /* Chart colors */
+  --chart-color1: #4285f4;
+  --chart-color2: #34a853;
+  --chart-color3: #fbbc04;
+  --chart-color4: #ea4335;
+  --chart-color5: #46bdc6;
+  --chart-color6: #7986cb;
+  
+  /* Typography */
+  --font-main: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  --font-heading: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  
+  /* Shadow effects */
+  --shadow-sm: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  --shadow-md: 0 2px 6px rgba(60, 64, 67, 0.3), 0
