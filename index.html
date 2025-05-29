@@ -1,85 +1,577 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Stocks Portfolio</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js "></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Portfolio Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <header class="dashboard-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>StockAnalyzer Pro</h1>
+                    <p class="subtitle">Complete Portfolio Management System</p>
+                </div>
+                <div class="header-actions">
+                    <button id="addStockBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Stock
+                    </button>
+                    <button id="importDataBtn" class="btn btn-secondary">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+                    <button id="exportDataBtn" class="btn btn-secondary">
+                        <i class="fas fa-file-export"></i> Export
+                    </button>
+                    <button id="settingsBtn" class="btn btn-icon">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
 
-  <header>
-    <nav class="navbar">
-      <div class="logo">MyStocks</div>
-      <ul class="nav-links">
-        <li><a href="#home">Home</a></li>
-        <li><a href="#about">About</a></li>
-        <li><a href="#portfolio">Portfolio</a></li>
-        <li><a href="#contact">Contact</a></li>
-        <li><a href="#stockLookup">Stock Lookup</a></li>
-      </ul>
-    </nav>
-  </header>
+    <main class="dashboard-main">
+        <div class="container">
+            <!-- Summary Cards -->
+            <section class="summary-cards">
+                <div class="row">
+                    <div class="col col-quarter">
+                        <div class="card summary-card">
+                            <h6 class="card-title">Total Portfolio Value</h6>
+                            <h2 class="card-value" id="totalPortfolioValue">$0.00</h2>
+                            <p class="card-info" id="totalStocksInfo">0 stocks in portfolio</p>
+                        </div>
+                    </div>
+                    <div class="col col-quarter">
+                        <div class="card summary-card">
+                            <h6 class="card-title">Total Gain/Loss</h6>
+                            <h2 class="card-value" id="totalGainLoss">$0.00</h2>
+                            <p class="card-info" id="totalReturnPercentage">0.00% overall return</p>
+                        </div>
+                    </div>
+                    <div class="col col-quarter">
+                        <div class="card summary-card">
+                            <h6 class="card-title">Best Performer</h6>
+                            <h3 class="card-value" id="bestPerformerTicker">-</h3>
+                            <p class="card-info positive" id="bestPerformerReturn">0.00% gain</p>
+                        </div>
+                    </div>
+                    <div class="col col-quarter">
+                        <div class="card summary-card">
+                            <h6 class="card-title">Worst Performer</h6>
+                            <h3 class="card-value" id="worstPerformerTicker">-</h3>
+                            <p class="card-info negative" id="worstPerformerReturn">0.00% loss</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-  <!-- Hero Section -->
-  <section id="home" class="hero">
-    <h1>Welcome to My Stocks Portfolio</h1>
-    <p>Tracking my journey in stock markets and financial analysis</p>
-    <a href="#about" class="btn">Learn More</a>
-  </section>
+            <!-- Charts Row -->
+            <section class="charts-row">
+                <div class="row">
+                    <div class="col col-half">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Portfolio Allocation</h3>
+                                <div class="card-actions">
+                                    <button class="btn btn-sm btn-secondary chart-toggle" data-chart="allocation" data-view="value">
+                                        Value
+                                    </button>
+                                    <button class="btn btn-sm btn-outline chart-toggle" data-chart="allocation" data-view="percentage">
+                                        %
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="allocationChart"></canvas>
+                                <div id="allocationNoData" class="no-data-message">
+                                    <p>No portfolio data available</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col col-half">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Top 5 Gainers & Losers</h3>
+                                <div class="card-actions">
+                                    <button class="btn btn-sm btn-secondary chart-toggle" data-chart="gainerslosers" data-view="percentage">
+                                        %
+                                    </button>
+                                    <button class="btn btn-sm btn-outline chart-toggle" data-chart="gainerslosers" data-view="value">
+                                        $
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="gainersLosersChart"></canvas>
+                                <div id="gainersLosersNoData" class="no-data-message">
+                                    <p>No portfolio data available</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-  <!-- About Section -->
-  <section id="about" class="about">
-    <h2>About Me</h2>
-    <p>Hello! I'm [Your Name], a passionate investor and finance enthusiast. I enjoy analyzing market trends and building strategies for long-term growth.</p>
-  </section>
+            <!-- Tabs Container -->
+            <section class="tabs-container">
+                <div class="tabs">
+                    <ul class="tab-list">
+                        <li class="tab-item active" data-tab="holdings">Holdings</li>
+                        <li class="tab-item" data-tab="transactions">Transactions</li>
+                        <li class="tab-item" data-tab="analytics">Analytics</li>
+                    </ul>
+                </div>
 
-  <!-- Portfolio Section -->
-  <section id="portfolio" class="portfolio">
-    <h2>My Projects</h2>
-    <div class="project-list">
-      <div class="project-card">
-        <h3>Stock Screener Tool</h3>
-        <p>A web-based tool to filter stocks based on fundamentals.</p>
-      </div>
-      <div class="project-card">
-        <h3>Market Dashboard</h3>
-        <p>Real-time data dashboard for tracking top-performing stocks.</p>
-      </div>
-      <div class="project-card">
-        <h3>Algorithmic Trading Bot</h3>
-        <p>Built a Python bot that executes trades based on technical indicators.</p>
-      </div>
+                <!-- Holdings Tab -->
+                <div id="holdingsTab" class="tab-content active">
+                    <div class="tab-header">
+                        <div class="search-controls">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="holdingsSearch" placeholder="Search holdings...">
+                            </div>
+                            <div class="filter-box">
+                                <button class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                                <button class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-sort"></i> Sort
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-actions">
+                            <button id="addStockBtnTab" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Stock
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="holdingsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Stock</th>
+                                    <th>Ticker</th>
+                                    <th>Units Held</th>
+                                    <th>Avg. Cost</th>
+                                    <th>Current Price</th>
+                                    <th>Market Value</th>
+                                    <th>Gain/Loss ($)</th>
+                                    <th>Gain/Loss (%)</th>
+                                    <th>52-Week Range</th>
+                                    <th>Position</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holdingsTableBody">
+                                <!-- Table rows will be added dynamically -->
+                            </tbody>
+                        </table>
+                        <div id="holdingsEmptyState" class="empty-state">
+                            <div class="empty-state-content">
+                                <i class="fas fa-chart-line fa-3x"></i>
+                                <h3>No stocks in your portfolio</h3>
+                                <p>Add stocks to start tracking your investments</p>
+                                <button id="addStockBtnEmpty" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Add Your First Stock
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pagination">
+                        <span class="pagination-info">Showing <span id="holdingsStartRange">0</span> to <span id="holdingsEndRange">0</span> of <span id="holdingsTotal">0</span> entries</span>
+                        <div class="pagination-controls">
+                            <button id="holdingsPrevPage" class="btn btn-sm btn-secondary" disabled>Previous</button>
+                            <div id="holdingsPagination" class="pagination-numbers">
+                                <!-- Page numbers will be added dynamically -->
+                            </div>
+                            <button id="holdingsNextPage" class="btn btn-sm btn-secondary" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Tab -->
+                <div id="transactionsTab" class="tab-content">
+                    <div class="tab-header">
+                        <div class="search-controls">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="transactionsSearch" placeholder="Search transactions...">
+                            </div>
+                            <div class="filter-box">
+                                <select id="transactionTypeFilter" class="select-control">
+                                    <option value="all">All Types</option>
+                                    <option value="buy">Buy</option>
+                                    <option value="sell">Sell</option>
+                                </select>
+                                <button class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-calendar"></i> Date
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-actions">
+                            <button id="exportTransactionsBtn" class="btn btn-secondary">
+                                <i class="fas fa-file-export"></i> Export
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="transactionsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Stock</th>
+                                    <th>Units</th>
+                                    <th>Price</th>
+                                    <th>Total Value</th>
+                                    <th>Gain/Loss</th>
+                                    <th>Holding Period</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsTableBody">
+                                <!-- Table rows will be added dynamically -->
+                            </tbody>
+                        </table>
+                        <div id="transactionsEmptyState" class="empty-state">
+                            <div class="empty-state-content">
+                                <i class="fas fa-exchange-alt fa-3x"></i>
+                                <h3>No transaction history</h3>
+                                <p>Transaction records will appear here when you buy or sell stocks</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pagination">
+                        <span class="pagination-info">Showing <span id="transactionsStartRange">0</span> to <span id="transactionsEndRange">0</span> of <span id="transactionsTotal">0</span> entries</span>
+                        <div class="pagination-controls">
+                            <button id="transactionsPrevPage" class="btn btn-sm btn-secondary" disabled>Previous</button>
+                            <div id="transactionsPagination" class="pagination-numbers">
+                                <!-- Page numbers will be added dynamically -->
+                            </div>
+                            <button id="transactionsNextPage" class="btn btn-sm btn-secondary" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analyticsTab" class="tab-content">
+                    <div class="row">
+                        <div class="col col-half">
+                            <div class="card">
+                                <h3 class="card-title">Position in 52-Week Range</h3>
+                                <div class="chart-container">
+                                    <canvas id="weekRangeChart"></canvas>
+                                    <div id="weekRangeNoData" class="no-data-message">
+                                        <p>Add stocks to view their positions in the 52-week range</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col col-half">
+                            <div class="card">
+                                <h3 class="card-title">Recovery Potential Analysis</h3>
+                                <div class="chart-container">
+                                    <canvas id="recoveryChart"></canvas>
+                                    <div id="recoveryNoData" class="no-data-message">
+                                        <p>Add stocks with losses to view recovery analysis</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-half">
+                            <div class="card">
+                                <h3 class="card-title">Realized vs Unrealized Gain/Loss</h3>
+                                <div class="chart-container">
+                                    <canvas id="realizedUnrealizedChart"></canvas>
+                                    <div id="realizedNoData" class="no-data-message">
+                                        <p>No gain/loss data available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col col-half">
+                            <div class="card">
+                                <h3 class="card-title">Performance by Sector</h3>
+                                <div class="chart-container">
+                                    <canvas id="sectorPerformanceChart"></canvas>
+                                    <div id="sectorNoData" class="no-data-message">
+                                        <p>Add stocks from different sectors to view performance comparison</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Add Stock Modal -->
+    <div id="addStockModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Stock</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addStockForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockTicker" class="form-label">Ticker Symbol</label>
+                            <input type="text" id="stockTicker" class="form-control" placeholder="e.g., AAPL" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockName" class="form-label">Company Name</label>
+                            <input type="text" id="stockName" class="form-control" placeholder="e.g., Apple Inc." required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockUnits" class="form-label">Number of Shares</label>
+                            <input type="number" id="stockUnits" class="form-control" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockPrice" class="form-label">Purchase Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="stockPrice" class="form-control" min="0.01" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockCurrentPrice" class="form-label">Current Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="stockCurrentPrice" class="form-control" min="0.01" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockSector" class="form-label">Sector</label>
+                            <select id="stockSector" class="form-control">
+                                <option value="Technology">Technology</option>
+                                <option value="Healthcare">Healthcare</option>
+                                <option value="Financials">Financials</option>
+                                <option value="Consumer Discretionary">Consumer Discretionary</option>
+                                <option value="Communication Services">Communication Services</option>
+                                <option value="Industrials">Industrials</option>
+                                <option value="Consumer Staples">Consumer Staples</option>
+                                <option value="Energy">Energy</option>
+                                <option value="Utilities">Utilities</option>
+                                <option value="Real Estate">Real Estate</option>
+                                <option value="Materials">Materials</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockLow52" class="form-label">52-Week Low</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="stockLow52" class="form-control" min="0.01" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockHigh52" class="form-label">52-Week High</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="stockHigh52" class="form-control" min="0.01" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="stockNotes" class="form-label">Notes (Optional)</label>
+                        <textarea id="stockNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button form="addStockForm" class="btn btn-primary" id="confirmAddStock">Add Stock</button>
+            </div>
+        </div>
     </div>
-  </section>
 
-  <!-- Contact Section -->
-  <section id="contact" class="contact">
-    <h2>Contact Me</h2>
-    <form id="contactForm">
-      <input type="text" placeholder="Your Name" required />
-      <input type="email" placeholder="Your Email" required />
-      <textarea placeholder="Your Message" required></textarea>
-      <button type="submit">Send Message</button>
-    </form>
-  </section>
-
-  <!-- Stock Lookup Section -->
-  <section id="stockLookup" class="stock-lookup">
-    <h2>Live Stock Price Lookup</h2>
-    <div class="lookup-form">
-      <input type="text" id="stockSymbol" placeholder="Enter Stock Symbol (e.g., AAPL)" />
-      <button onclick="getStockData()">Get Data</button>
+    <!-- Buy Stock Modal -->
+    <div id="buyStockModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Buy More Shares</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="buyStockForm">
+                    <input type="hidden" id="buyStockId">
+                    <div class="stock-info">
+                        <h4 id="buyStockName">Apple Inc. (AAPL)</h4>
+                        <div class="stock-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Current Holdings:</span>
+                                <span id="buyCurrentUnits" class="detail-value">100 shares</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Average Cost:</span>
+                                <span id="buyAverageCost" class="detail-value">$150.00</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Current Price:</span>
+                                <span id="buyCurrentPrice" class="detail-value">$175.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyUnits" class="form-label">Number of Shares to Buy</label>
+                        <input type="number" id="buyUnits" class="form-control" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyPrice" class="form-label">Purchase Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="buyPrice" class="form-control" min="0.01" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyDate" class="form-label">Purchase Date</label>
+                        <input type="date" id="buyDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyNotes" class="form-label">Notes (Optional)</label>
+                        <textarea id="buyNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button form="buyStockForm" class="btn btn-success" id="confirmBuyStock">Confirm Purchase</button>
+            </div>
+        </div>
     </div>
-    <div id="stockResult" class="result-box"></div>
-    <canvas id="stockChart" width="80%" height="400"></canvas>
-  </section>
 
-  <footer>
-    <p>&copy; 2025 Your Name. All rights reserved.</p>
-  </footer>
+    <!-- Sell Stock Modal -->
+    <div id="sellStockModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Sell Shares</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="sellStockForm">
+                    <input type="hidden" id="sellStockId">
+                    <div class="stock-info">
+                        <h4 id="sellStockName">Apple Inc. (AAPL)</h4>
+                        <div class="stock-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Current Holdings:</span>
+                                <span id="sellCurrentUnits" class="detail-value">100 shares</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Average Cost:</span>
+                                <span id="sellAverageCost" class="detail-value">$150.00</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Current Price:</span>
+                                <span id="sellCurrentPrice" class="detail-value">$175.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sellUnits" class="form-label">Number of Shares to Sell</label>
+                        <input type="number" id="sellUnits" class="form-control" min="0.01" step="0.01" required>
+                        <div class="form-actions">
+                            <button type="button" id="sellHalf" class="btn btn-sm btn-outline">50%</button>
+                            <button type="button" id="sellAll" class="btn btn-sm btn-outline">Sell All</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sellPrice" class="form-label">Selling Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="sellPrice" class="form-control" min="0.01" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sellDate" class="form-label">Sell Date</label>
+                        <input type="date" id="sellDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sellNotes" class="form-label">Notes (Optional)</label>
+                        <textarea id="sellNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button form="sellStockForm" class="btn btn-warning" id="confirmSellStock">Confirm Sale</button>
+            </div>
+        </div>
+    </div>
 
-  <script src="script.js"></script>
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Deletion</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirmation-message">
+                    <i class="fas fa-exclamation-triangle fa-3x warning-icon"></i>
+                    <p>Are you sure you want to delete <strong id="deleteStockName">Apple Inc. (AAPL)</strong> from your portfolio?</p>
+                    <p class="warning-text">This action cannot be undone. All transaction history for this stock will be kept.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteStock">Delete Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importDataModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Import Portfolio Data</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="importFile" class="form-label">Select JSON File</label>
+                    <input type="file" id="importFile" class="form-control" accept=".json">
+                </div>
+                <div class="import-options">
+                    <div class="form-check">
+                        <input type="checkbox" id="importReplace" class="form-check-input">
+                        <label for="importReplace" class="form-check-label">Replace existing data</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="confirmImport">Import Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/portfolio.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
