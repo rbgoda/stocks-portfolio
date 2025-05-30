@@ -2,20 +2,20 @@
  * Utility functions for the Stock Portfolio Dashboard
  */
 
-const Utils = {
+const Utils = (function() {
   /**
    * Format a number as currency
    * @param {number} value - The value to format
    * @param {string} currency - The currency symbol
    * @return {string} The formatted currency string
    */
-  formatCurrency: function(value, currency = '$') {
+  function formatCurrency(value, currency = '$') {
     if (typeof value !== 'number') {
       value = parseFloat(value) || 0;
     }
     
     return currency + value.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
-  },
+  }
   
   /**
    * Format a number as percentage
@@ -23,7 +23,7 @@ const Utils = {
    * @param {boolean} includeSign - Whether to include a plus sign for positive values
    * @return {string} The formatted percentage string
    */
-  formatPercentage: function(value, includeSign = true) {
+  function formatPercentage(value, includeSign = true) {
     if (typeof value !== 'number') {
       value = parseFloat(value) || 0;
     }
@@ -34,7 +34,7 @@ const Utils = {
     }
     
     return sign + value.toFixed(2) + '%';
-  },
+  }
   
   /**
    * Format a number with commas for thousands
@@ -42,13 +42,13 @@ const Utils = {
    * @param {number} decimals - The number of decimal places
    * @return {string} The formatted number string
    */
-  formatNumber: function(value, decimals = 2) {
+  function formatNumber(value, decimals = 2) {
     if (typeof value !== 'number') {
       value = parseFloat(value) || 0;
     }
     
     return value.toFixed(decimals).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
-  },
+  }
   
   /**
    * Format a date in a readable format
@@ -56,7 +56,7 @@ const Utils = {
    * @param {string} format - The format to use (short, medium, long)
    * @return {string} The formatted date string
    */
-  formatDate: function(date, format = 'short') {
+  function formatDate(date, format = 'short') {
     if (!date) return '';
     
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -80,7 +80,7 @@ const Utils = {
       default:
         return d.toLocaleDateString();
     }
-  },
+  }
   
   /**
    * Calculate the holding period between two dates
@@ -88,7 +88,7 @@ const Utils = {
    * @param {string|Date} endDate - The end date (default: today)
    * @return {string} The formatted holding period
    */
-  calculateHoldingPeriod: function(startDate, endDate = new Date()) {
+  function calculateHoldingPeriod(startDate, endDate = new Date()) {
     if (!startDate) return '';
     
     const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
@@ -117,90 +117,15 @@ const Utils = {
                remainingMonths + (remainingMonths === 1 ? ' month' : ' months');
       }
     }
-  },
+  }
   
   /**
    * Generate a unique ID
    * @return {string} A unique ID string
    */
-  generateId: function() {
+  function generateId() {
     return 'id_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
-  },
-  
-  /**
-   * Save data to localStorage
-   * @param {string} key - The storage key
-   * @param {any} data - The data to store
-   */
-  saveToLocalStorage: function(key, data) {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving to localStorage:', error);
-    }
-  },
-  
-  /**
-   * Load data from localStorage
-   * @param {string} key - The storage key
-   * @param {any} defaultValue - Default value if key doesn't exist
-   * @return {any} The retrieved data or defaultValue
-   */
-  loadFromLocalStorage: function(key, defaultValue = null) {
-    try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : defaultValue;
-    } catch (error) {
-      console.error('Error loading from localStorage:', error);
-      return defaultValue;
-    }
-  },
-  
-  /**
-   * Export data as JSON file
-   * @param {object} data - The data to export
-   * @param {string} fileName - The file name
-   */
-  exportToJson: function(data, fileName = 'portfolio_data.json') {
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 100);
-  },
-  
-  /**
-   * Import data from a JSON file
-   * @param {File} file - The file to import
-   * @return {Promise} A promise that resolves with the parsed data
-   */
-  importFromJson: function(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          resolve(data);
-        } catch (error) {
-          reject(new Error('Invalid JSON file'));
-        }
-      };
-      
-      reader.onerror = () => {
-        reject(new Error('Error reading file'));
-      };
-      
-      reader.readAsText(file);
-    });
-  },
+  }
   
   /**
    * Show a notification message
@@ -208,7 +133,7 @@ const Utils = {
    * @param {string} type - The message type (success, error, warning, info)
    * @param {number} duration - How long to show the message (ms)
    */
-  showNotification: function(message, type = 'info', duration = 3000) {
+  function showNotification(message, type = 'info', duration = 3000) {
     // Check if notification container exists, if not create it
     let container = document.getElementById('notification-container');
     
@@ -283,7 +208,7 @@ const Utils = {
         }, 300);
       }
     }, duration);
-  },
+  }
   
   /**
    * Calculate the position of a stock in its 52-week range
@@ -292,29 +217,29 @@ const Utils = {
    * @param {number} high - The 52-week high
    * @return {number} A value between 0 and 100
    */
-  calculateRangePosition: function(current, low, high) {
+  function calculateRangePosition(current, low, high) {
     if (low === high) return 50;
     return Math.min(100, Math.max(0, ((current - low) / (high - low)) * 100));
-  },
+  }
   
   /**
    * Get today's date in YYYY-MM-DD format
    * @return {string} Today's date
    */
-  getTodayFormatted: function() {
+  function getTodayFormatted() {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  },
+  }
   
   /**
    * Helper function to toggle modal visibility
    * @param {string} modalId - The ID of the modal to toggle
    * @param {boolean} show - Whether to show or hide the modal
    */
-  toggleModal: function(modalId, show) {
+  function toggleModal(modalId, show) {
     const modal = document.getElementById(modalId);
     if (modal) {
       if (show) {
@@ -324,4 +249,66 @@ const Utils = {
       }
     }
   }
-};
+  
+  /**
+   * Export data as JSON file
+   * @param {object} data - The data to export
+   * @param {string} fileName - The file name
+   */
+  function exportToJson(data, fileName = 'portfolio_export.json') {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+  
+  /**
+   * Import data from a JSON file
+   * @param {File} file - The file to import
+   * @return {Promise} A promise that resolves with the parsed data
+   */
+  function importFromJson(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          resolve(data);
+        } catch (error) {
+          reject(new Error('Invalid JSON file'));
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Error reading file'));
+      };
+      
+      reader.readAsText(file);
+    });
+  }
+  
+  // Public API
+  return {
+    formatCurrency,
+    formatPercentage,
+    formatNumber,
+    formatDate,
+    calculateHoldingPeriod,
+    generateId,
+    showNotification,
+    calculateRangePosition,
+    getTodayFormatted,
+    toggleModal,
+    exportToJson,
+    importFromJson
+  };
+})();
