@@ -1,39 +1,135 @@
-# Create the portfolio.js file with functionality for stock portfolio management
-portfolio_js = """/**
+/**
  * Portfolio Management Functions
  * Handles core stock portfolio functionality including add, buy, sell, and delete operations
+ * Uses Firebase Firestore for data persistence
  */
 
 const Portfolio = (function() {
-  // Private variables
-  const STORAGE_KEY = 'stock_portfolio_data';
-  const TRANSACTIONS_KEY = 'stock_portfolio_transactions';
+  // Firebase collections
+  const STOCKS_COLLECTION = 'stocks';
+  const TRANSACTIONS_COLLECTION = 'transactions';
   
+  // Local data
   let stocks = [];
   let transactions = [];
+  let userId = null;
+  let stocksListener = null;
+  let transactionsListener = null;
   
-  // Initialize the portfolio from localStorage or with defaults
-  function init() {
-    loadData();
-    updateUI();
+  // DOM elements
+  const loadingOverlay = document.getElementById('loading-overlay');
+  
+  // Initialize the portfolio 
+  function init(uid) {
+    if (!uid) {
+      console.error('User ID is required to initialize portfolio');
+      return;
+    }
+    
+    userId = uid;
+    
+    // Show loading overlay
+    if (loadingOverlay) loadingOverlay.classList.add('active');
+    
+    // Unsubscribe from previous listeners
+    unsubscribeListeners();
+    
+    // Set up real-time listeners for stocks and transactions
+    setupFirestoreListeners();
+    
+    // Check for sample data after a delay to ensure listeners are set up
+    setTimeout(() => {
+      checkAndAddSampleData();
+    }, 1000);
   }
   
-  // Load data from localStorage
-  function loadData() {
-    stocks = Utils.loadFromLocalStorage(STORAGE_KEY, []);
-    transactions = Utils.loadFromLocalStorage(TRANSACTIONS_KEY, []);
+  // Set up Firestore listeners
+  function setupFirestoreListeners() {
+    // Stocks listener
+    stocksListener = db.collection(STOCKS_COLLECTION)
+      .where('userId', '==', userId)
+      .onSnapshot(snapshot => {
+        stocks = [];
+        snapshot.forEach(doc => {
+          stocks.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        
+        // Hide loading overlay after initial data load
+        if (loadingOverlay && stocks.length > 0) {
+          loadingOverlay.classList.remove('active');
+        }
+        
+        updateUI();
+      }, error => {
+        console.error('Error listening to stocks:', error);
+        Utils.showNotification('Error loading portfolio data', 'error');
+        
+        // Hide loading overlay on error
+        if (loadingOverlay) loadingOverlay.classList.remove('active');
+      });
     
-    // If no data, add sample stocks
-    if (stocks.length === 0) {
-      addSampleStocks();
+    // Transactions listener
+    transactionsListener = db.collection(TRANSACTIONS_COLLECTION)
+      .where('userId', '==', userId)
+      .onSnapshot(snapshot => {
+        transactions = [];
+        snapshot.forEach(doc => {
+          transactions.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        updateUI();
+      }, error => {
+        console.error('Error listening to transactions:', error);
+        Utils.showNotification('Error loading transaction data', 'error');
+      });
+  }
+  
+  // Unsubscribe from Firestore listeners
+  function unsubscribeListeners() {
+    if (stocksListener) {
+      stocksListener();
+      stocksListener = null;
+    }
+    
+    if (transactionsListener) {
+      transactionsListener();
+      transactionsListener = null;
+    }
+  }
+  
+  /**
+   * Check if the user has stocks, if not add sample data
+   */
+  async function checkAndAddSampleData() {
+    try {
+      const snapshot = await db.collection(STOCKS_COLLECTION)
+        .where('userId', '==', userId)
+        .limit(1)
+        .get();
+      
+      if (snapshot.empty) {
+        await addSampleStocks();
+      } else {
+        // If we have data, update prices
+        updateStockPrices();
+      }
+    } catch (error) {
+      console.error('Error checking for sample data:', error);
+      
+      // Hide loading overlay on error
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
     }
   }
   
   // Add some sample stocks to get started
-  function addSampleStocks() {
+  async function addSampleStocks() {
     const sampleStocks = [
       {
-        id: Utils.generateId(),
         name: 'Apple Inc.',
         ticker: 'AAPL',
         units: 100,
@@ -43,10 +139,10 @@ const Portfolio = (function() {
         low52Week: 124.17,
         high52Week: 182.94,
         notes: 'Initial investment',
-        dateAdded: new Date().toISOString()
+        dateAdded: new Date().toISOString(),
+        userId: userId
       },
       {
-        id: Utils.generateId(),
         name: 'Microsoft Corporation',
         ticker: 'MSFT',
         units: 50,
@@ -56,10 +152,10 @@ const Portfolio = (function() {
         low52Week: 219.35,
         high52Week: 290.15,
         notes: 'Long term hold',
-        dateAdded: new Date().toISOString()
+        dateAdded: new Date().toISOString(),
+        userId: userId
       },
       {
-        id: Utils.generateId(),
         name: 'Tesla, Inc.',
         ticker: 'TSLA',
         units: 20,
@@ -69,37 +165,37 @@ const Portfolio = (function() {
         low52Week: 620.57,
         high52Week: 900.40,
         notes: 'High volatility stock',
-        dateAdded: new Date().toISOString()
+        dateAdded: new Date().toISOString(),
+        userId: userId
       }
     ];
     
-    // Add sample stocks
-    stocks = sampleStocks;
+    // Add sample stocks to Firestore
+    for (const stock of sampleStocks) {
+      try {
+        const docRef = await db.collection(STOCKS_COLLECTION).add(stock);
+        
+        // Add corresponding buy transaction
+        await db.collection(TRANSACTIONS_COLLECTION).add({
+          type: 'buy',
+          stockId: docRef.id,
+          ticker: stock.ticker,
+          stockName: stock.name,
+          units: stock.units,
+          price: stock.avgCost,
+          date: new Date().toISOString(),
+          notes: 'Initial purchase',
+          userId: userId
+        });
+      } catch (error) {
+        console.error('Error adding sample stock:', error);
+      }
+    }
     
-    // Add corresponding buy transactions
-    const today = new Date().toISOString();
-    sampleStocks.forEach(stock => {
-      transactions.push({
-        id: Utils.generateId(),
-        type: 'buy',
-        stockId: stock.id,
-        ticker: stock.ticker,
-        stockName: stock.name,
-        units: stock.units,
-        price: stock.avgCost,
-        date: today,
-        notes: 'Initial purchase'
-      });
-    });
+    // Hide loading overlay when done
+    if (loadingOverlay) loadingOverlay.classList.remove('active');
     
-    // Save to localStorage
-    saveData();
-  }
-  
-  // Save data to localStorage
-  function saveData() {
-    Utils.saveToLocalStorage(STORAGE_KEY, stocks);
-    Utils.saveToLocalStorage(TRANSACTIONS_KEY, transactions);
+    Utils.showNotification('Sample portfolio created successfully', 'success');
   }
   
   // Get all stocks
@@ -118,49 +214,104 @@ const Portfolio = (function() {
   }
   
   /**
+   * Update stock prices from market data API
+   */
+  async function updateStockPrices() {
+    if (stocks.length === 0) return;
+    
+    // Show loading overlay
+    if (loadingOverlay) loadingOverlay.classList.add('active');
+    
+    try {
+      // Get price updates from market data API
+      const updates = await MarketData.updatePrices(stocks);
+      
+      // Update each stock in Firestore
+      for (const update of updates) {
+        await db.collection(STOCKS_COLLECTION).doc(update.id).update({
+          currentPrice: update.currentPrice,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+      
+      // Record update time
+      MarketData.recordUpdateTime();
+      
+      Utils.showNotification('Stock prices updated', 'success');
+    } catch (error) {
+      console.error('Error updating stock prices:', error);
+      Utils.showNotification('Error updating stock prices', 'error');
+    } finally {
+      // Hide loading overlay
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+    }
+  }
+  
+  /**
    * Add a new stock to the portfolio
    * @param {Object} stockData - The stock data to add
-   * @returns {Object} The newly added stock
+   * @returns {Promise<Object>} The newly added stock
    */
-  function addStock(stockData) {
-    // Create a new stock object with an ID
-    const newStock = {
-      id: Utils.generateId(),
-      name: stockData.name,
-      ticker: stockData.ticker,
-      units: parseFloat(stockData.units),
-      avgCost: parseFloat(stockData.price),
-      currentPrice: parseFloat(stockData.currentPrice),
-      sector: stockData.sector || 'Other',
-      low52Week: parseFloat(stockData.low52Week),
-      high52Week: parseFloat(stockData.high52Week),
-      notes: stockData.notes || '',
-      dateAdded: new Date().toISOString()
-    };
-    
-    // Add to stocks array
-    stocks.push(newStock);
-    
-    // Record the transaction
-    const transaction = {
-      id: Utils.generateId(),
-      type: 'buy',
-      stockId: newStock.id,
-      ticker: newStock.ticker,
-      stockName: newStock.name,
-      units: newStock.units,
-      price: newStock.avgCost,
-      date: new Date().toISOString(),
-      notes: stockData.notes || 'Initial purchase'
-    };
-    
-    transactions.push(transaction);
-    
-    // Save data
-    saveData();
-    
-    // Return the new stock
-    return newStock;
+  async function addStock(stockData) {
+    try {
+      // Show loading overlay
+      if (loadingOverlay) loadingOverlay.classList.add('active');
+      
+      // Create a new stock object
+      const newStock = {
+        name: stockData.name,
+        ticker: stockData.ticker.toUpperCase(),
+        units: parseFloat(stockData.units),
+        avgCost: parseFloat(stockData.price),
+        currentPrice: parseFloat(stockData.currentPrice),
+        sector: stockData.sector || 'Other',
+        low52Week: parseFloat(stockData.low52Week),
+        high52Week: parseFloat(stockData.high52Week),
+        notes: stockData.notes || '',
+        dateAdded: new Date().toISOString(),
+        userId: userId
+      };
+      
+      // Add to Firestore
+      const stockRef = await db.collection(STOCKS_COLLECTION).add(newStock);
+      
+      // Record the transaction
+      const transaction = {
+        type: 'buy',
+        stockId: stockRef.id,
+        ticker: newStock.ticker,
+        stockName: newStock.name,
+        units: newStock.units,
+        price: newStock.avgCost,
+        date: new Date().toISOString(),
+        notes: stockData.notes || 'Initial purchase',
+        userId: userId
+      };
+      
+      await db.collection(TRANSACTIONS_COLLECTION).add(transaction);
+      
+      // Get the newly created stock with ID
+      const stockSnapshot = await stockRef.get();
+      const addedStock = {
+        id: stockSnapshot.id,
+        ...stockSnapshot.data()
+      };
+      
+      Utils.showNotification(`Added ${newStock.ticker} to your portfolio`, 'success');
+      
+      // Hide loading overlay
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+      
+      return addedStock;
+    } catch (error) {
+      console.error('Error adding stock:', error);
+      
+      // Hide loading overlay on error
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+      
+      Utils.showNotification(`Error adding stock: ${error.message}`, 'error');
+      throw error;
+    }
   }
   
   /**
@@ -170,54 +321,74 @@ const Portfolio = (function() {
    * @param {number} price - Purchase price per unit
    * @param {string} date - Date of purchase
    * @param {string} notes - Optional notes
-   * @returns {Object} The updated stock
+   * @returns {Promise<Object>} The updated stock
    */
-  function buyMoreShares(stockId, units, price, date, notes = '') {
-    // Find the stock
-    const stockIndex = stocks.findIndex(stock => stock.id === stockId);
-    if (stockIndex === -1) return null;
-    
-    // Convert inputs to proper types
-    units = parseFloat(units);
-    price = parseFloat(price);
-    
-    // Get the existing stock
-    const stock = stocks[stockIndex];
-    
-    // Calculate new average cost
-    const totalUnits = stock.units + units;
-    const totalCost = (stock.avgCost * stock.units) + (price * units);
-    const newAvgCost = totalCost / totalUnits;
-    
-    // Update the stock
-    const updatedStock = {
-      ...stock,
-      units: totalUnits,
-      avgCost: newAvgCost
-    };
-    
-    stocks[stockIndex] = updatedStock;
-    
-    // Record the transaction
-    const transaction = {
-      id: Utils.generateId(),
-      type: 'buy',
-      stockId: stockId,
-      ticker: stock.ticker,
-      stockName: stock.name,
-      units: units,
-      price: price,
-      date: date || new Date().toISOString(),
-      notes: notes
-    };
-    
-    transactions.push(transaction);
-    
-    // Save data
-    saveData();
-    
-    // Return the updated stock
-    return updatedStock;
+  async function buyMoreShares(stockId, units, price, date, notes = '') {
+    try {
+      // Show loading overlay
+      if (loadingOverlay) loadingOverlay.classList.add('active');
+      
+      // Get the existing stock
+      const stockDoc = await db.collection(STOCKS_COLLECTION).doc(stockId).get();
+      
+      if (!stockDoc.exists) {
+        throw new Error('Stock not found');
+      }
+      
+      const stock = stockDoc.data();
+      
+      // Convert inputs to proper types
+      units = parseFloat(units);
+      price = parseFloat(price);
+      
+      // Calculate new average cost
+      const totalUnits = stock.units + units;
+      const totalCost = (stock.avgCost * stock.units) + (price * units);
+      const newAvgCost = totalCost / totalUnits;
+      
+      // Update the stock in Firestore
+      await db.collection(STOCKS_COLLECTION).doc(stockId).update({
+        units: totalUnits,
+        avgCost: newAvgCost
+      });
+      
+      // Record the transaction
+      const transaction = {
+        type: 'buy',
+        stockId: stockId,
+        ticker: stock.ticker,
+        stockName: stock.name,
+        units: units,
+        price: price,
+        date: date || new Date().toISOString(),
+        notes: notes,
+        userId: userId
+      };
+      
+      await db.collection(TRANSACTIONS_COLLECTION).add(transaction);
+      
+      // Get updated stock
+      const updatedStockDoc = await db.collection(STOCKS_COLLECTION).doc(stockId).get();
+      const updatedStock = {
+        id: updatedStockDoc.id,
+        ...updatedStockDoc.data()
+      };
+      
+      Utils.showNotification(`Purchased ${units} more shares of ${stock.ticker}`, 'success');
+      
+      // Hide loading overlay
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+      
+      return updatedStock;
+    } catch (error) {
+      console.error('Error buying more shares:', error);
+      
+      // Hide loading overlay on error
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+      
+      Utils.showNotification(`Error buying shares: ${error.message}`, 'error');
+      throw error;
+    }
   }
   
   /**
@@ -227,100 +398,131 @@ const Portfolio = (function() {
    * @param {number} price - Selling price per unit
    * @param {string} date - Date of the sale
    * @param {string} notes - Optional notes
-   * @returns {Object} Result object with updated stock or null if completely sold
+   * @returns {Promise<Object>} Result object
    */
-  function sellShares(stockId, units, price, date, notes = '') {
-    // Find the stock
-    const stockIndex = stocks.findIndex(stock => stock.id === stockId);
-    if (stockIndex === -1) return null;
-    
-    // Convert inputs to proper types
-    units = parseFloat(units);
-    price = parseFloat(price);
-    
-    // Get the existing stock
-    const stock = stocks[stockIndex];
-    
-    // Check if units are valid
-    if (units <= 0 || units > stock.units) {
-      throw new Error('Invalid number of units to sell');
-    }
-    
-    // Calculate gain or loss
-    const costBasis = stock.avgCost * units;
-    const saleValue = price * units;
-    const gainOrLoss = saleValue - costBasis;
-    
-    // Record the transaction
-    const transaction = {
-      id: Utils.generateId(),
-      type: 'sell',
-      stockId: stockId,
-      ticker: stock.ticker,
-      stockName: stock.name,
-      units: units,
-      price: price,
-      date: date || new Date().toISOString(),
-      gainOrLoss: gainOrLoss,
-      notes: notes
-    };
-    
-    transactions.push(transaction);
-    
-    // Check if all shares were sold
-    if (units === stock.units) {
-      // Remove the stock from the portfolio but keep transaction history
-      stocks.splice(stockIndex, 1);
-      saveData();
-      return { fullySold: true };
-    } else {
-      // Update the stock with remaining units
-      const updatedStock = {
-        ...stock,
-        units: stock.units - units
+  async function sellShares(stockId, units, price, date, notes = '') {
+    try {
+      // Show loading overlay
+      if (loadingOverlay) loadingOverlay.classList.add('active');
+      
+      // Get the existing stock
+      const stockDoc = await db.collection(STOCKS_COLLECTION).doc(stockId).get();
+      
+      if (!stockDoc.exists) {
+        throw new Error('Stock not found');
+      }
+      
+      const stock = stockDoc.data();
+      
+      // Convert inputs to proper types
+      units = parseFloat(units);
+      price = parseFloat(price);
+      
+      // Check if units are valid
+      if (units <= 0 || units > stock.units) {
+        throw new Error('Invalid number of units to sell');
+      }
+      
+      // Calculate gain or loss
+      const costBasis = stock.avgCost * units;
+      const saleValue = price * units;
+      const gainOrLoss = saleValue - costBasis;
+      
+      // Record the transaction
+      const transaction = {
+        type: 'sell',
+        stockId: stockId,
+        ticker: stock.ticker,
+        stockName: stock.name,
+        units: units,
+        price: price,
+        date: date || new Date().toISOString(),
+        gainOrLoss: gainOrLoss,
+        notes: notes,
+        userId: userId
       };
       
-      stocks[stockIndex] = updatedStock;
-      saveData();
-      return { fullySold: false, stock: updatedStock };
+      await db.collection(TRANSACTIONS_COLLECTION).add(transaction);
+      
+      // Check if all shares were sold
+      if (units === stock.units) {
+        // Remove the stock from the portfolio but keep transaction history
+        await db.collection(STOCKS_COLLECTION).doc(stockId).delete();
+        
+        Utils.showNotification(`Sold all shares of ${stock.ticker}`, 'success');
+        
+        // Hide loading overlay
+        if (loadingOverlay) loadingOverlay.classList.remove('active');
+        
+        return { fullySold: true };
+      } else {
+        // Update the stock with remaining units
+        const updatedStock = {
+          units: stock.units - units
+        };
+        
+        await db.collection(STOCKS_COLLECTION).doc(stockId).update(updatedStock);
+        
+        // Get the updated stock
+        const updatedStockDoc = await db.collection(STOCKS_COLLECTION).doc(stockId).get();
+        const result = { 
+          fullySold: false, 
+          stock: {
+            id: updatedStockDoc.id,
+            ...updatedStockDoc.data()
+          }
+        };
+        
+        Utils.showNotification(`Sold ${units} shares of ${stock.ticker}`, 'success');
+        
+        // Hide loading overlay
+        if (loadingOverlay) loadingOverlay.classList.remove('active');
+        
+        return result;
+      }
+    } catch (error) {
+      console.error('Error selling shares:', error);
+      
+      // Hide loading overlay on error
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+      
+      Utils.showNotification(`Error selling shares: ${error.message}`, 'error');
+      throw error;
     }
   }
   
   /**
    * Delete a stock from portfolio
    * @param {string} stockId - ID of the stock to delete
-   * @returns {boolean} True if successful
+   * @returns {Promise<boolean>} True if successful
    */
-  function deleteStock(stockId) {
-    const stockIndex = stocks.findIndex(stock => stock.id === stockId);
-    if (stockIndex === -1) return false;
-    
-    // Remove the stock
-    stocks.splice(stockIndex, 1);
-    
-    // Save data
-    saveData();
-    
-    return true;
-  }
-  
-  /**
-   * Update current price of a stock
-   * @param {string} stockId - ID of the stock
-   * @param {number} newPrice - New current price
-   * @returns {Object} The updated stock
-   */
-  function updateStockPrice(stockId, newPrice) {
-    const stockIndex = stocks.findIndex(stock => stock.id === stockId);
-    if (stockIndex === -1) return null;
-    
-    // Update the price
-    stocks[stockIndex].currentPrice = parseFloat(newPrice);
-    
-    // Save data
-    saveData();
-    
-    return stocks[stockIndex];
+  async function deleteStock(stockId) {
+    try {
+      // Show loading overlay
+      if (loadingOverlay) loadingOverlay.classList.add('active');
+      
+      // Get stock info before deletion for notification
+      const stockDoc = await db.collection(STOCKS_COLLECTION).doc(stockId).get();
+      const ticker = stockDoc.exists ? stockDoc.data().ticker : 'Stock';
+      
+      // Delete the stock
+      await db.collection(STOCKS_COLLECTION).doc(stockId).delete();
+      
+      Utils.showNotification(`Deleted ${ticker} from your portfolio`, 'success');
+      
+      // Hide loading overlay
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting stock:', error);
+      
+      // Hide loading overlay on error
+      if (loadingOverlay) loadingOverlay.classList.remove('active');
+      
+      Utils.showNotification(`Error deleting stock: ${error.message}`, 'error');
+      throw error;
+    }
   }
   
   /**
@@ -501,20 +703,53 @@ const Portfolio = (function() {
   }
   
   /**
+   * Get sector performance data
+   * @returns {Array} Performance data by sector
+   */
+  function getSectorPerformance() {
+    // Group stocks by sector
+    const sectors = {};
+    
+    stocks.forEach(stock => {
+      if (!sectors[stock.sector]) {
+        sectors[stock.sector] = {
+          sector: stock.sector,
+          totalValue: 0,
+          totalCost: 0
+        };
+      }
+      
+      sectors[stock.sector].totalValue += stock.units * stock.currentPrice;
+      sectors[stock.sector].totalCost += stock.units * stock.avgCost;
+    });
+    
+    // Calculate performance by sector
+    return Object.values(sectors).map(sector => {
+      const performance = sector.totalCost > 0 ? ((sector.totalValue / sector.totalCost) - 1) * 100 : 0;
+      return {
+        sector: sector.sector,
+        totalValue: sector.totalValue,
+        totalCost: sector.totalCost,
+        performance
+      };
+    });
+  }
+  
+  /**
    * Update the UI with current portfolio data
    */
   function updateUI() {
-    // This function would be implemented based on the specific UI elements
-    // in the HTML. It would update the DOM with current portfolio data,
-    // populate tables, and update charts.
-    
-    // We'll trigger an event that the app.js can listen for
+    // Dispatch event with updated data
     document.dispatchEvent(new CustomEvent('portfolio-updated', {
       detail: {
         stocks: getAllStocks(),
+        transactions: getAllTransactions(),
         metrics: calculatePortfolioMetrics(),
         performers: getTopPerformers(),
-        sectorAllocation: getSectorAllocation()
+        sectorAllocation: getSectorAllocation(),
+        gainLoss: calculateGainLossMetrics(),
+        recovery: getRecoveryPotential(),
+        sectors: getSectorPerformance()
       }
     }));
   }
@@ -522,6 +757,7 @@ const Portfolio = (function() {
   // Public API
   return {
     init,
+    checkAndAddSampleData,
     getAllStocks,
     getAllTransactions,
     getStockById,
@@ -530,12 +766,13 @@ const Portfolio = (function() {
     sellShares,
     deleteStock,
     updateStockPrice,
+    updateStockPrices,
     calculatePortfolioMetrics,
     getTopPerformers,
     getSectorAllocation,
     calculateGainLossMetrics,
     getRecoveryPotential,
-    updateUI
+    getSectorPerformance,
+    unsubscribeListeners
   };
 })();
-"""
