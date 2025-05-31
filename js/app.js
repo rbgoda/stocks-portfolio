@@ -817,3 +817,112 @@ document.addEventListener('DOMContentLoaded', function() {
         updateDashboard();
     }
 });
+// Initialize modules when user is authenticated
+document.addEventListener('user-authenticated', function(event) {
+  const user = event.detail.user;
+  
+  // Initialize existing modules
+  Portfolio.init(user.uid);
+  
+  // Initialize new Phase 2 modules
+  DividendTracker.init(user.uid);
+  RecommendationEngine.init();
+  
+  // Set up Phase 2 UI event listeners
+  setupPhase2EventListeners();
+});
+
+// Set up additional event listeners for Phase 2 features
+function setupPhase2EventListeners() {
+  // Recommendations tab refresh button
+  document.getElementById('refreshRecommendationsBtn').addEventListener('click', function() {
+    const portfolioData = {
+      stocks: Portfolio.getAllStocks(),
+      metrics: Portfolio.calculatePortfolioMetrics()
+    };
+    
+    RecommendationEngine.generateRecommendations(portfolioData);
+  });
+  
+  // Tab showing events to update UI
+  document.querySelectorAll('.tab-item').forEach(tab => {
+    tab.addEventListener('click', function() {
+      const tabId = this.dataset.tab;
+      
+      // Update specific tabs when activated
+      if (tabId === 'recommendations') {
+        const portfolioData = {
+          stocks: Portfolio.getAllStocks(),
+          metrics: Portfolio.calculatePortfolioMetrics()
+        };
+        
+        RecommendationEngine.getRecommendations(portfolioData)
+          .then(recommendations => {
+            RecommendationEngine.displayRecommendations(recommendations, 'recommendationsContainer');
+          });
+      }
+      
+      if (tabId === 'dividends') {
+        DividendTracker.updateDividendUI();
+      }
+      
+      if (tabId === 'analytics') {
+        // Update advanced analytics if needed
+        const analyticsView = document.querySelector('.view-controls .btn-secondary').dataset.view;
+        if (analyticsView === 'advanced') {
+          updateAdvancedAnalytics();
+        }
+      }
+    });
+  });
+  
+  // Analytics view toggle
+  document.querySelectorAll('.view-controls .btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Update button state
+      document.querySelectorAll('.view-controls .btn').forEach(b => {
+        b.classList.remove('btn-secondary');
+        b.classList.add('btn-outline');
+      });
+      this.classList.remove('btn-outline');
+      this.classList.add('btn-secondary');
+      
+      // Toggle view
+      const view = this.dataset.view;
+      document.querySelectorAll('.analytics-view').forEach(v => {
+        v.classList.remove('active');
+      });
+      document.getElementById(`${view}AnalyticsView`).classList.add('active');
+      
+      // Update advanced analytics if needed
+      if (view === 'advanced') {
+        updateAdvancedAnalytics();
+      }
+    });
+  });
+}
+
+// Function to update advanced analytics charts
+function updateAdvancedAnalytics() {
+  const stocks = Portfolio.getAllStocks();
+  
+  // Create correlation matrix
+  AdvancedCharts.createCorrelationMatrix(stocks, 'correlationMatrixChart');
+  
+  // Create benchmark comparison (with sample data)
+  const portfolioPerformance = {
+    dates: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    values: [100, 105, 102, 107, 112, 115]
+  };
+  
+  const benchmarkPerformance = {
+    name: 'S&P 500',
+    values: [100, 102, 103, 101, 104, 107]
+  };
+  
+  AdvancedCharts.createBenchmarkComparison(
+    portfolioPerformance,
+    benchmarkPerformance,
+    'benchmarkComparisonChart'
+  );
+}
